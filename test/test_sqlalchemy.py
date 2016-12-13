@@ -1,4 +1,3 @@
-import logging
 import unittest
 
 from rdflib import (
@@ -11,8 +10,6 @@ from rdflib.store import Store
 
 from rdflib_sqlalchemy import registerplugins
 
-
-_logger = logging.getLogger(__name__)
 
 michel = URIRef(u"michel")
 tarek = URIRef(u"tarek")
@@ -28,22 +25,9 @@ class mock_cursor():
         raise Exception("Forced exception")
 
 
-class SQLATestCase(unittest.TestCase):
+class _SQLAlchemyTestCaseBase(unittest.TestCase):
     identifier = URIRef("rdflib_test")
     dburi = Literal("sqlite://")
-
-    def setUp(self):
-        self.store = plugin.get(
-            "SQLAlchemy", Store)(identifier=self.identifier)
-        self.graph = ConjunctiveGraph(self.store, identifier=self.identifier)
-        self.graph.open(self.dburi, create=True)
-
-    def tearDown(self):
-        self.graph.destroy(self.dburi)
-        try:
-            self.graph.close()
-        except:
-            pass
 
     def test_registerplugins(self):
         # I doubt this is quite right for a fresh pip installation,
@@ -74,5 +58,29 @@ class SQLATestCase(unittest.TestCase):
         self.store._remove_context(self.identifier)
 
 
-if __name__ == "__main__":
-    unittest.main()
+class SQLAlchemyWithURITestCase(_SQLAlchemyTestCaseBase):
+
+    def setUp(self):
+        self.store = plugin.get("SQLAlchemy", Store)(identifier=self.identifier)
+        self.graph = ConjunctiveGraph(self.store, identifier=self.identifier)
+        self.graph.open(self.dburi, create=True)
+
+    def tearDown(self):
+        self.graph.destroy(self.dburi)
+        self.graph.close()
+
+
+class SQLAlchemyWithConfigurationTestCase(_SQLAlchemyTestCaseBase):
+
+    def setUp(self):
+        self.store = plugin.get("SQLAlchemy", Store)(identifier=self.identifier)
+        self.graph = ConjunctiveGraph(self.store, identifier=self.identifier)
+        configuration = dict(
+            url=self.dburi,
+            echo=False,
+        )
+        self.graph.open(configuration, create=True)
+
+    def tearDown(self):
+        self.graph.destroy(self.dburi)
+        self.graph.close()
