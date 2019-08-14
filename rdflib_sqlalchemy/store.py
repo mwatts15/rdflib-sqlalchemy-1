@@ -338,7 +338,13 @@ class SQLAlchemy(Store, SQLGeneratorMixin, StatisticsMixin):
             trans = connection.begin()
             try:
                 for command in commands_dict.values():
-                    connection.execute(command["statement"], command["params"])
+                    try:
+                        connection.execute(command["statement"], command["params"])
+                    except Exception:
+                        if command_type == 'type' and self.engine.name == 'sqlite':
+                            # Duplicate type statements can be taken in stride
+                            modified_statement = command['statement'].prefix_with('OR REPLACE')
+                            connection.execute(modified_statement, command["params"])
                 trans.commit()
             except Exception:
                 _logger.exception("AddN failed.")
@@ -688,7 +694,15 @@ class SQLAlchemy(Store, SQLGeneratorMixin, StatisticsMixin):
                     prefix=prefix, uri=namespace)
                 connection.execute(ins)
             except Exception:
-                _logger.exception("Namespace binding failed.")
+                if self.engine.name == 'sqlite':
+                    # Duplicate type statements can be taken in stride
+                    modified_ins = self.tables["namespace_binds"].insert().prefix_with('OR REPLACE').values(prefix=prefix, uri=namespace)
+                    try:
+                        connection.execute(modified_ins)
+                    except Exception:
+                        _logger.exception("Namespace binding failed.")
+                else:
+                    _logger.exception("Namespace binding failed.")
 
     def prefix(self, namespace):
         """Prefix."""
