@@ -675,7 +675,8 @@ class SQLAlchemy(Store, SQLGeneratorMixin, StatisticsMixin):
                 rt = [rtTuple[0] for rtTuple in res.fetchall()]
                 res.close()
                 return rt and URIRef(rt[0]) or None
-        except:  # noqa
+        except Exception:
+            _logger.warning('exception in namespace retrieval', exc_info=True)
             return None
 
     def namespaces(self):

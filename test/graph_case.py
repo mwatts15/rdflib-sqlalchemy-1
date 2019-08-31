@@ -33,10 +33,7 @@ class GraphTestCase(unittest.TestCase):
 
     def tearDown(self, uri="sqlite://"):
         self.graph.destroy(uri)
-        try:
-            self.graph.close()
-        except:  # noqa
-            pass
+        self.graph.close()
 
     def addStuff(self):
         tarek = self.tarek
